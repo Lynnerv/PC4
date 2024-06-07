@@ -1,7 +1,25 @@
+using Microsoft.Extensions.ML;
+using Microsoft.OpenApi.Models;
+using PC4.DataStructure;
+using PC4.Services;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddPredictionEnginePool<ProductoRating, ProductoRatingPrediction>()
+    .FromFile("MLRecomendation.mlnet");
+
+builder.Services.AddSingleton<ProductoService>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Description = "Docs for my API", Version = "v1" });
+});
+
 
 var app = builder.Build();
 
@@ -15,6 +33,15 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseSwagger();
+
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+});
+app.MapPost("/predict",
+    async (PredictionEnginePool<ProductoRating, ProductoRatingPrediction> predictionEnginePool, ProductoRating input) =>
+        await Task.FromResult(predictionEnginePool.Predict(input)));
 
 app.UseRouting();
 
